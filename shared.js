@@ -213,7 +213,9 @@ function resetSelections() {
 // PLAN SELECTOR
 // ═══════════════════════════════════════
 function selectPlan(btn) {
-  currentPlan = parseInt(btn.dataset.plan, 10);
+  const nextPlan = parseInt(btn.dataset.plan, 10);
+  if (!Number.isInteger(nextPlan) || !PLANS[nextPlan]) return;
+  currentPlan = nextPlan;
   document.querySelectorAll('.plan-btn').forEach(b => {
     b.classList.remove('active');
     b.setAttribute('aria-checked', 'false');
@@ -232,7 +234,7 @@ function selectPlan(btn) {
 // RENDER
 // ═══════════════════════════════════════
 function getCoeffCategories() {
-  const plan = PLANS[currentPlan];
+  const plan = PLANS[currentPlan] || PLANS[0];
   return [
     { id: 'period',      num: '01', name: '使用期間',      type: 'radio',    options: plan.period },
     { id: 'competition', num: '02', name: '競合排除',      type: 'radio',    options: plan.competition },
@@ -262,7 +264,7 @@ function renderCards() {
       const role = isCheck ? 'checkbox' : 'radio';
       const ariaChecked = sel ? 'true' : 'false';
       const ariaDisabled = opt.base ? 'true' : 'false';
-      const tabIndex = opt.base ? '-1' : '0';
+      const tabIndex = opt.base ? '-1' : (isCheck ? '0' : (sel ? '0' : '-1'));
       html += `<div class="${cls}" data-cat="${cat.id}" data-idx="${i}" ${opt.base ? 'data-base="true"' : ''} role="${role}" aria-checked="${ariaChecked}" aria-disabled="${ariaDisabled}" tabindex="${tabIndex}">
         <div class="opt-left"><div class="opt-label">${opt.label}</div><div class="opt-desc">${opt.desc}</div></div>
         <div class="opt-coeff">${cv}</div></div>`;
@@ -284,6 +286,31 @@ function renderCards() {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         handleClick(e);
+        return;
+      }
+      if (!el.classList.contains('coeff-option')) return;
+
+      const group = el.parentElement;
+      if (!group) return;
+
+      const options = Array.from(group.querySelectorAll('.coeff-option'));
+      const idx = options.indexOf(el);
+      if (idx === -1) return;
+
+      let target;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        target = options[(idx + 1) % options.length];
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        target = options[(idx - 1 + options.length) % options.length];
+      } else if (e.key === 'Home') {
+        target = options[0];
+      } else if (e.key === 'End') {
+        target = options[options.length - 1];
+      }
+
+      if (target) {
+        e.preventDefault();
+        handleClick({ currentTarget: target });
       }
     });
   });
@@ -295,7 +322,7 @@ function handleClick(e) {
   const idx = parseInt(el.dataset.idx, 10);
   const cats = getCoeffCategories();
   const cat = cats.find(c => c.id === catId);
-  if (!cat) return;
+  if (!cat || !Number.isInteger(idx) || !cat.options[idx]) return;
 
   if (cat.type === 'checkbox') {
     if (el.dataset.base) return;
