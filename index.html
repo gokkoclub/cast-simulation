@@ -297,6 +297,18 @@ function handleGoogleLogin() {
         }
         if (response.access_token) {
           verifyAndShowApp(response.access_token);
+        } else {
+          setLoginBusy(false);
+        }
+      },
+      error_callback: (err) => {
+        setLoginBusy(false);
+        if (err.type === 'popup_failed_to_open') {
+          showLoginError('ポップアップがブロックされました。ブラウザの設定を確認してください。');
+        } else if (err.type === 'popup_closed') {
+          showLoginError('ログイン画面が閉じられました。再度お試しください。');
+        } else {
+          showLoginError('Googleログインに失敗しました。再度お試しください。');
         }
       },
     });

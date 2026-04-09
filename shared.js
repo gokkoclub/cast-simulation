@@ -1,6 +1,8 @@
 // ═══════════════════════════════════════
 // GOKKO Ad Pricing Simulator — Shared Logic
 // ═══════════════════════════════════════
+(function (window) {
+'use strict';
 
 // ── PLAN DATA — 4 plans × 5 coefficient categories ──
 const PLANS = [
@@ -215,9 +217,12 @@ function selectPlan(btn) {
   document.querySelectorAll('.plan-btn').forEach(b => {
     b.classList.remove('active');
     b.setAttribute('aria-checked', 'false');
+    b.setAttribute('tabindex', '-1');
   });
   btn.classList.add('active');
   btn.setAttribute('aria-checked', 'true');
+  btn.setAttribute('tabindex', '0');
+  btn.focus();
   resetSelections();
   renderCards();
   calculate();
@@ -318,16 +323,16 @@ function calculate() {
   const plan = PLANS[currentPlan];
   const baseFee = parseInt(baseFeeInput.value.replace(/[^0-9]/g, ''), 10) || 0;
 
-  const pCoeff = plan.period[state.period].coeff;
-  const cCoeff = plan.competition[state.competition].coeff;
-  const iCoeff = plan.industry[state.industry].coeff;
+  const pCoeff = (plan.period[state.period] || plan.period[0]).coeff;
+  const cCoeff = (plan.competition[state.competition] || plan.competition[0]).coeff;
+  const iCoeff = (plan.industry[state.industry] || plan.industry[0]).coeff;
 
   let mSum = 0;
-  state.media.forEach(i => { mSum += plan.media[i].coeff; });
+  state.media.forEach(i => { if (plan.media[i]) mSum += plan.media[i].coeff; });
   const mCoeff = Math.min(mSum, plan.mediaCap);
 
-  const rCoeff = RANK[state.rank].coeff;
-  const marginCoeff = MARGIN[state.margin].coeff;
+  const rCoeff = (RANK[state.rank] || RANK[0]).coeff;
+  const marginCoeff = (MARGIN[state.margin] || MARGIN[0]).coeff;
 
   const total = baseFee * pCoeff * cCoeff * iCoeff * mCoeff * rCoeff * marginCoeff;
 
@@ -357,13 +362,30 @@ function initSimulator() {
     return false;
   }
 
-  // Plan selector events
-  document.querySelectorAll('.plan-btn').forEach(btn => {
+  // Plan selector — roving tabindex + arrow key navigation (WAI-ARIA radiogroup)
+  const planBtns = Array.from(document.querySelectorAll('.plan-btn'));
+  planBtns.forEach((btn, idx) => {
+    btn.setAttribute('tabindex', btn.classList.contains('active') ? '0' : '-1');
     btn.addEventListener('click', () => selectPlan(btn));
     btn.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         selectPlan(btn);
+        return;
+      }
+      let target;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        target = planBtns[(idx + 1) % planBtns.length];
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        target = planBtns[(idx - 1 + planBtns.length) % planBtns.length];
+      } else if (e.key === 'Home') {
+        target = planBtns[0];
+      } else if (e.key === 'End') {
+        target = planBtns[planBtns.length - 1];
+      }
+      if (target) {
+        e.preventDefault();
+        selectPlan(target);
       }
     });
   });
@@ -385,3 +407,8 @@ function initSimulator() {
   console.log('\u2705 \u521d\u671f\u5316\u5b8c\u4e86: \u30ab\u30fc\u30c9\u6570 =', document.querySelectorAll('.coeff-card').length);
   return true;
 }
+
+// Expose public API
+window.initSimulator = initSimulator;
+
+})(window);
