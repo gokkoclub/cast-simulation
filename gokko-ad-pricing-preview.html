@@ -107,6 +107,13 @@
     min-width: 160px;
   }
   .plan-btn:hover { border-color: rgba(255,255,255,0.3); color: var(--white); }
+  .plan-btn:focus-visible,
+  .coeff-option:focus-visible,
+  .media-option:focus-visible,
+  .base-fee-input:focus-visible {
+    outline: 3px solid rgba(255,255,255,0.45);
+    outline-offset: 3px;
+  }
   .plan-btn.active {
     background: var(--white);
     color: var(--black);
@@ -279,6 +286,9 @@
     border-color: var(--gray-400);
     background: var(--gray-100);
   }
+  .coeff-option:focus-visible, .media-option:focus-visible {
+    outline-color: rgba(10,10,10,0.45);
+  }
   .coeff-option.selected, .media-option.selected {
     background: var(--black);
     color: var(--white);
@@ -450,6 +460,18 @@
   .coeff-card:nth-child(5) { animation-delay: 0.15s; }
   .coeff-card:nth-child(6) { animation-delay: 0.18s; }
 
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .app-content { display: block; }
 </style>
 </head>
@@ -505,7 +527,7 @@
       <label>ショートドラマ出演時のキャスティング費（税別）</label>
       <div class="input-row">
         <span>¥</span>
-        <input type="text" class="base-fee-input" id="baseFee" placeholder="100,000" value="100,000">
+        <input type="text" class="base-fee-input" id="baseFee" placeholder="100,000" value="100,000" inputmode="numeric" aria-label="基本出演料">
       </div>
     </div>
   </section>
@@ -550,14 +572,15 @@
     </div>
     <div class="result-total">
       <div class="result-total-label">Estimated Total</div>
-      <div class="result-total-value" id="resultValue">¥0</div>
+      <div class="result-total-value" id="resultValue" aria-live="polite" aria-atomic="true">¥0</div>
     </div>
   </div>
+  <div class="sr-only" id="resultLiveRegion" aria-live="polite" aria-atomic="true"></div>
 </div>
 
 <!-- ── Footer ── -->
 <footer class="footer">
-  © 2025 GOKKO Inc. All rights reserved. ｜ 本料金表は参考価格です。正式なお見積りは別途ご相談ください。
+  © <span class="copyright-year">2026</span> GOKKO Inc. All rights reserved. ｜ 本料金表は参考価格です。正式なお見積りは別途ご相談ください。
 </footer>
 
 </div><!-- /app-content -->
@@ -749,6 +772,13 @@ const state = { period: 0, competition: 0, industry: 0, media: [0], rank: 0, mar
 // ═══════════════════════════════════════
 // PLAN SELECTOR
 // ═══════════════════════════════════════
+function syncCurrentYear() {
+  const currentYear = new Date().getFullYear();
+  document.querySelectorAll('.copyright-year').forEach(el => {
+    el.textContent = String(currentYear);
+  });
+}
+
 function selectPlan(btn) {
   currentPlan = parseInt(btn.dataset.plan);
   document.querySelectorAll('.plan-btn').forEach(b => {
@@ -805,16 +835,19 @@ function renderCards() {
       const cv = isCheck && !opt.base ? `+${opt.coeff}` : `×${opt.coeff}`;
       const role = isCheck ? 'checkbox' : 'radio';
       const ariaChecked = sel ? 'true' : 'false';
-      html += `<div class="${cls}" data-cat="${cat.id}" data-idx="${i}" ${opt.base ? 'data-base="true"' : ''} role="${role}" aria-checked="${ariaChecked}" tabindex="0">
+      const ariaDisabled = opt.base ? 'true' : 'false';
+      const tabIndex = opt.base ? '-1' : '0';
+      html += `<div class="${cls}" data-cat="${cat.id}" data-idx="${i}" ${opt.base ? 'data-base="true"' : ''} role="${role}" aria-checked="${ariaChecked}" aria-disabled="${ariaDisabled}" tabindex="${tabIndex}">
         <div class="opt-left"><div class="opt-label">${opt.label}</div><div class="opt-desc">${opt.desc}</div></div>
         <div class="opt-coeff">${cv}</div></div>`;
     });
 
     const capNote = cat.cap ? `<div class="media-note">※ 加算合計の上限（Cap）: ×${cat.cap}</div>` : '';
+    const groupRole = isCheck ? 'group' : 'radiogroup';
 
     card.innerHTML = `<div class="coeff-header">
       <div class="coeff-number">${cat.num}</div><div class="coeff-name">${cat.name}</div>
-    </div><div class="${isCheck ? 'media-options' : 'coeff-options'}">${html}</div>${capNote}`;
+    </div><div class="${isCheck ? 'media-options' : 'coeff-options'}" role="${groupRole}" aria-label="${cat.name}">${html}</div>${capNote}`;
 
     grid.appendChild(card);
   });
@@ -854,7 +887,6 @@ function handleClick(e) {
 // ═══════════════════════════════════════
 function calculate() {
   const plan = PLANS[currentPlan];
-  const cats = getCoeffCategories();
   const baseFee = parseInt(document.getElementById('baseFee').value.replace(/[^0-9]/g, '')) || 0;
 
   const pCoeff = plan.period[state.period].coeff;
@@ -883,7 +915,10 @@ function calculate() {
     `<span class="result-chip">${c.l} <span>×${c.v}</span></span>${i < chips.length - 1 ? '<span class="result-multiply">×</span>' : ''}`
   ).join('');
 
-  document.getElementById('resultValue').textContent = '¥' + Math.round(total).toLocaleString('ja-JP');
+  const formattedTotal = '¥' + Math.round(total).toLocaleString('ja-JP');
+  document.getElementById('resultValue').textContent = formattedTotal;
+  document.getElementById('resultLiveRegion').textContent =
+    `${plan.name}、見積総額 ${formattedTotal}。期間 ${pCoeff}、競合 ${cCoeff}、業界 ${iCoeff}、メディア ${mCoeff}、ランク ${rCoeff}、マージン ${marginCoeff}。`;
 }
 
 // ═══════════════════════════════════════
@@ -899,6 +934,7 @@ document.getElementById('baseFee').addEventListener('input', function() {
 // INIT
 // ═══════════════════════════════════════
 try {
+  syncCurrentYear();
   renderCards();
   calculate();
   console.log('✅ 初期化完了: カード数 =', document.querySelectorAll('.coeff-card').length);
