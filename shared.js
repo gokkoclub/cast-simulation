@@ -182,6 +182,8 @@ const RANK = [
 // ═══════════════════════════════════════
 let currentPlan = 2; // default: スタンダード
 const state = { period: 0, competition: 0, industry: 0, media: [0], rank: 0, margin: 0 };
+let simulatorInitialized = false;
+const REQUIRED_SIMULATOR_IDS = ['baseFee', 'coeffGrid', 'resultPlanBadge', 'resultBreakdown', 'resultValue', 'resultLiveRegion'];
 
 // ═══════════════════════════════════════
 // YEAR SYNC
@@ -190,6 +192,19 @@ function syncCurrentYear() {
   const y = String(new Date().getFullYear());
   document.querySelectorAll('.copyright-year').forEach(el => { el.textContent = y; });
   document.querySelectorAll('.menu-year').forEach(el => { el.textContent = y; });
+}
+
+function hasRequiredSimulatorMarkup() {
+  return REQUIRED_SIMULATOR_IDS.every(id => document.getElementById(id));
+}
+
+function resetSelections() {
+  state.period = 0;
+  state.competition = 0;
+  state.industry = 0;
+  state.media = [0];
+  state.rank = 0;
+  state.margin = 0;
 }
 
 // ═══════════════════════════════════════
@@ -203,7 +218,7 @@ function selectPlan(btn) {
   });
   btn.classList.add('active');
   btn.setAttribute('aria-checked', 'true');
-  state.period = 0; state.competition = 0; state.industry = 0; state.media = [0]; state.rank = 0; state.margin = 0;
+  resetSelections();
   renderCards();
   calculate();
 }
@@ -225,6 +240,7 @@ function getCoeffCategories() {
 
 function renderCards() {
   const grid = document.getElementById('coeffGrid');
+  if (!grid) return;
   grid.innerHTML = '';
   const cats = getCoeffCategories();
 
@@ -274,6 +290,7 @@ function handleClick(e) {
   const idx = parseInt(el.dataset.idx, 10);
   const cats = getCoeffCategories();
   const cat = cats.find(c => c.id === catId);
+  if (!cat) return;
 
   if (cat.type === 'checkbox') {
     if (el.dataset.base) return;
@@ -291,8 +308,15 @@ function handleClick(e) {
 // CALCULATE
 // ═══════════════════════════════════════
 function calculate() {
+  const baseFeeInput = document.getElementById('baseFee');
+  const resultPlanBadge = document.getElementById('resultPlanBadge');
+  const resultBreakdown = document.getElementById('resultBreakdown');
+  const resultValue = document.getElementById('resultValue');
+  const resultLiveRegion = document.getElementById('resultLiveRegion');
+  if (!baseFeeInput || !resultPlanBadge || !resultBreakdown || !resultValue || !resultLiveRegion) return;
+
   const plan = PLANS[currentPlan];
-  const baseFee = parseInt(document.getElementById('baseFee').value.replace(/[^0-9]/g, ''), 10) || 0;
+  const baseFee = parseInt(baseFeeInput.value.replace(/[^0-9]/g, ''), 10) || 0;
 
   const pCoeff = plan.period[state.period].coeff;
   const cCoeff = plan.competition[state.competition].coeff;
@@ -307,20 +331,19 @@ function calculate() {
 
   const total = baseFee * pCoeff * cCoeff * iCoeff * mCoeff * rCoeff * marginCoeff;
 
-  document.getElementById('resultPlanBadge').textContent = plan.nameEn;
+  resultPlanBadge.textContent = plan.nameEn;
 
-  const bd = document.getElementById('resultBreakdown');
   const chips = [
     { l: '期間', v: pCoeff }, { l: '競合', v: cCoeff }, { l: '業界', v: iCoeff },
     { l: 'メディア', v: mCoeff }, { l: 'ランク', v: rCoeff }, { l: 'マージン', v: marginCoeff },
   ];
-  bd.innerHTML = chips.map((c, i) =>
+  resultBreakdown.innerHTML = chips.map((c, i) =>
     `<span class="result-chip">${c.l} <span>\u00d7${c.v}</span></span>${i < chips.length - 1 ? '<span class="result-multiply">\u00d7</span>' : ''}`
   ).join('');
 
   const formattedTotal = '\u00a5' + Math.round(total).toLocaleString('ja-JP');
-  document.getElementById('resultValue').textContent = formattedTotal;
-  document.getElementById('resultLiveRegion').textContent =
+  resultValue.textContent = formattedTotal;
+  resultLiveRegion.textContent =
     `${plan.name}\u3001\u898b\u7a4d\u7dcf\u984d ${formattedTotal}\u3002\u671f\u9593 ${pCoeff}\u3001\u7af6\u5408 ${cCoeff}\u3001\u696d\u754c ${iCoeff}\u3001\u30e1\u30c7\u30a3\u30a2 ${mCoeff}\u3001\u30e9\u30f3\u30af ${rCoeff}\u3001\u30de\u30fc\u30b8\u30f3 ${marginCoeff}\u3002`;
 }
 
@@ -328,6 +351,12 @@ function calculate() {
 // INIT
 // ═══════════════════════════════════════
 function initSimulator() {
+  if (simulatorInitialized) return true;
+  if (!hasRequiredSimulatorMarkup()) {
+    console.warn('Simulator markup is incomplete. Skipping initialization.');
+    return false;
+  }
+
   // Plan selector events
   document.querySelectorAll('.plan-btn').forEach(btn => {
     btn.addEventListener('click', () => selectPlan(btn));
@@ -341,8 +370,8 @@ function initSimulator() {
 
   // Base fee input formatting
   document.getElementById('baseFee').addEventListener('input', function() {
-    let raw = this.value.replace(/[^0-9]/g, '');
-    if (raw) this.value = parseInt(raw, 10).toLocaleString('ja-JP');
+    const raw = this.value.replace(/[^0-9]/g, '');
+    this.value = raw ? parseInt(raw, 10).toLocaleString('ja-JP') : '';
     calculate();
   });
 
@@ -350,7 +379,9 @@ function initSimulator() {
   syncCurrentYear();
 
   // Initial render
+  simulatorInitialized = true;
   renderCards();
   calculate();
   console.log('\u2705 \u521d\u671f\u5316\u5b8c\u4e86: \u30ab\u30fc\u30c9\u6570 =', document.querySelectorAll('.coeff-card').length);
+  return true;
 }
