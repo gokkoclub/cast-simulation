@@ -450,108 +450,12 @@
   .coeff-card:nth-child(5) { animation-delay: 0.15s; }
   .coeff-card:nth-child(6) { animation-delay: 0.18s; }
 
-  /* ── Login Overlay ── */
-  .login-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: var(--gray-100);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.4s, visibility 0.4s;
-  }
-  .login-overlay.hidden {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-  .login-card {
-    background: var(--white);
-    border-radius: 20px;
-    padding: 48px 40px;
-    text-align: center;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.06);
-  }
-  .login-card h2 {
-    font-size: 26px;
-    font-weight: 900;
-    margin-bottom: 6px;
-    color: var(--black);
-  }
-  .login-card .login-sub {
-    font-size: 13px;
-    color: var(--gray-500);
-    margin-bottom: 32px;
-  }
-  .login-box {
-    background: var(--gray-100);
-    border-radius: 14px;
-    padding: 28px 24px;
-    margin-bottom: 20px;
-  }
-  .login-box p {
-    font-size: 13px;
-    color: var(--gray-600);
-    margin-bottom: 16px;
-  }
-  .google-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--white);
-    border: 1px solid var(--card-border);
-    border-radius: 10px;
-    padding: 12px 28px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--black);
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: var(--font-ja);
-  }
-  .google-btn:hover {
-    border-color: var(--gray-400);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  }
-  .google-btn svg { width: 18px; height: 18px; }
-  .login-domain {
-    font-size: 12px;
-    color: var(--gray-400);
-  }
-  .login-error {
-    color: #d32f2f;
-    font-size: 12px;
-    margin-top: 12px;
-    display: none;
-  }
-
   .app-content { display: block; }
-  .login-overlay { display: none; }
 </style>
 </head>
 <body>
 
-<!-- ── Login Overlay ── -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-card">
-    <h2>広告料金シミュレーター</h2>
-    <p class="login-sub">縦型ショートドラマ 広告利用メニュー</p>
-    <div class="login-box">
-      <p>gokkoclub.jp のアカウントでログインしてください</p>
-      <button class="google-btn" id="googleLoginBtn" onclick="handleGoogleLogin()">
-        <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-        Google でログイン
-      </button>
-      <p class="login-error" id="loginError">@gokkoclub.jp のメールアドレスでログインしてください</p>
-    </div>
-    <p class="login-domain">@gokkoclub.jp のメールアドレスが必要です</p>
-  </div>
-</div>
-
-<!-- ── App Content (hidden until login) ── -->
+<!-- ── App Content ── -->
 <div class="app-content" id="appContent">
 
 <!-- ── Hero ── -->
@@ -560,24 +464,24 @@
   <h1>Ad Pricing<br>Simulator</h1>
   <p>縦型ショートドラマ広告利用の料金を、プランと各係数からリアルタイムでシミュレーション</p>
 
-  <div class="plan-selector" id="planSelector">
-    <div class="plan-btn" data-plan="0">
+  <div class="plan-selector" id="planSelector" role="radiogroup" aria-label="プラン選択">
+    <div class="plan-btn" data-plan="0" role="radio" aria-checked="false" tabindex="0">
       <span class="plan-num">PLAN 01</span>
       <span class="plan-name">ライトプラン</span>
       <span class="plan-sub">フック重視</span>
     </div>
-    <div class="plan-btn" data-plan="1">
+    <div class="plan-btn" data-plan="1" role="radio" aria-checked="false" tabindex="0">
       <span class="plan-num">PLAN 02</span>
       <span class="plan-name">ベーシックプラン</span>
       <span class="plan-sub">実稼働費回収</span>
     </div>
-    <div class="plan-btn active" data-plan="2">
+    <div class="plan-btn active" data-plan="2" role="radio" aria-checked="true" tabindex="0">
       <span class="plan-recommended">RECOMMENDED</span>
       <span class="plan-num">PLAN 03</span>
       <span class="plan-name">スタンダードプラン</span>
       <span class="plan-sub">バランス型</span>
     </div>
-    <div class="plan-btn" data-plan="3">
+    <div class="plan-btn" data-plan="3" role="radio" aria-checked="false" tabindex="0">
       <span class="plan-num">PLAN 04</span>
       <span class="plan-name">プレミアムプラン</span>
       <span class="plan-sub">アップセル</span>
@@ -845,15 +749,27 @@ const state = { period: 0, competition: 0, industry: 0, media: [0], rank: 0, mar
 // ═══════════════════════════════════════
 // PLAN SELECTOR
 // ═══════════════════════════════════════
+function selectPlan(btn) {
+  currentPlan = parseInt(btn.dataset.plan);
+  document.querySelectorAll('.plan-btn').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-checked', 'false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-checked', 'true');
+  // Reset selections
+  state.period = 0; state.competition = 0; state.industry = 0; state.media = [0]; state.rank = 0; state.margin = 0;
+  renderCards();
+  calculate();
+}
+
 document.querySelectorAll('.plan-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentPlan = parseInt(btn.dataset.plan);
-    document.querySelectorAll('.plan-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    // Reset selections
-    state.period = 0; state.competition = 0; state.industry = 0; state.media = [0]; state.rank = 0; state.margin = 0;
-    renderCards();
-    calculate();
+  btn.addEventListener('click', () => selectPlan(btn));
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      selectPlan(btn);
+    }
   });
 });
 
@@ -887,7 +803,9 @@ function renderCards() {
       const sel = isCheck ? state[cat.id].includes(i) : state[cat.id] === i;
       const cls = `${isCheck ? 'media-option' : 'coeff-option'}${sel ? ' selected' : ''}`;
       const cv = isCheck && !opt.base ? `+${opt.coeff}` : `×${opt.coeff}`;
-      html += `<div class="${cls}" data-cat="${cat.id}" data-idx="${i}" ${opt.base ? 'data-base="true"' : ''}>
+      const role = isCheck ? 'checkbox' : 'radio';
+      const ariaChecked = sel ? 'true' : 'false';
+      html += `<div class="${cls}" data-cat="${cat.id}" data-idx="${i}" ${opt.base ? 'data-base="true"' : ''} role="${role}" aria-checked="${ariaChecked}" tabindex="0">
         <div class="opt-left"><div class="opt-label">${opt.label}</div><div class="opt-desc">${opt.desc}</div></div>
         <div class="opt-coeff">${cv}</div></div>`;
     });
@@ -903,6 +821,12 @@ function renderCards() {
 
   grid.querySelectorAll('.coeff-option, .media-option').forEach(el => {
     el.addEventListener('click', handleClick);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleClick(e);
+      }
+    });
   });
 }
 
